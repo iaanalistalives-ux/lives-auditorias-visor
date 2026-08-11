@@ -110,6 +110,7 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
     <div class="f"><label>Cliente</label><select id="fCliente"></select></div>
     <div class="f"><label>Tipo</label><select id="fTipo"></select></div>
     <div class="f"><label>Taller</label><select id="fTaller"></select></div>
+    <div class="f"><label>Proceso</label><select id="fProceso"></select></div>
     <div class="f"><label>Auditora</label><select id="fAuditora"></select></div>
     <div class="f"><label>Desde</label><input type="date" id="fDesde"></div>
     <div class="f"><label>Hasta</label><input type="date" id="fHasta"></div>
@@ -202,7 +203,8 @@ function unicos(campo){
 }
 function llenarFiltros(){
   [["fCliente","CLIENTE","Todos los clientes"],["fTipo","TIPO","Todos los tipos"],
-   ["fTaller","TALLER","Todos los talleres"],["fAuditora","AUDITORA","Todas las auditoras"]]
+   ["fTaller","TALLER","Todos los talleres"],["fAuditora","AUDITORA","Todas las auditoras"],
+   ["fProceso","PROCESO_TALLER","Todos los procesos"]]
   .forEach(([id,campo,ph])=>{
     const sel=$(id), prev=sel.value;
     sel.innerHTML='<option value="">'+ph+'</option>'+
@@ -214,17 +216,19 @@ function llenarFiltros(){
 function filtrar(){
   const q=$("fq").value.trim().toUpperCase();
   const cl=$("fCliente").value, ti=$("fTipo").value, ta=$("fTaller").value, au=$("fAuditora").value;
+  const pr=$("fProceso").value;
   const de=$("fDesde").value, ha=$("fHasta").value;
   return AUDS.filter(a=>{
     if(cl&&a.CLIENTE!==cl) return false;
     if(ti&&a.TIPO!==ti) return false;
     if(ta&&a.TALLER!==ta) return false;
     if(au&&a.AUDITORA!==au) return false;
+    if(pr&&a.PROCESO_TALLER!==pr) return false;
     const f=String(a.FECHA||"").slice(0,10);
     if(de&&f<de) return false;
     if(ha&&f>ha) return false;
     if(q){
-      const blob=[a.GRUPO,a.ESTILO,a.COLOR,a.N_AUDITORIA,a.NOTA,a.CLIENTE,a.TALLER,a.AUDITORA]
+      const blob=[a.GRUPO,a.ESTILO,a.COLOR,a.N_AUDITORIA,a.NOTA,a.CLIENTE,a.TALLER,a.AUDITORA,a.PROCESO_TALLER]
                  .join(" ").toUpperCase();
       if(blob.indexOf(q)<0) return false;
     }
@@ -252,7 +256,7 @@ function render(){
       (fs.length>1?'<span class="np">'+fs.length+' fotos</span>':'')+'</div>'+
       '<div class="b"><div class="t">'+esc(a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
       '<div class="s">'+esc(String(a.FECHA).slice(0,10))+' · Sem '+esc(a.SEMANA)+' · N° '+esc(a.N_AUDITORIA)+'<br>'+
-      esc(a.TALLER)+' · '+esc(a.AUDITORA)+'</div>'+
+      esc(a.TALLER)+(a.PROCESO_TALLER?' ('+esc(a.PROCESO_TALLER)+')':'')+' · '+esc(a.AUDITORA)+'</div>'+
       '<span class="tag">'+esc(a.TIPO)+'</span>'+
       (a.CLIENTE?'<span class="tag">'+esc(a.CLIENTE)+'</span>':'')+
       (a.COLOR?'<span class="tag">'+esc(a.COLOR)+'</span>':'')+
@@ -274,7 +278,8 @@ function abrir(a){
   const fs=FOTOS[a.ID]||[];
   $("ovT").textContent=a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
   $("ovS").textContent=String(a.FECHA).slice(0,10)+" · Semana "+a.SEMANA+" · N° "+a.N_AUDITORIA;
-  const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
+  const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Proceso",a.PROCESO_TALLER||"—"],
+                ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
                 ["Grupo",a.GRUPO],["Estilo",a.ESTILO],["Color",a.COLOR||"—"],["Recorte",a.RECORTE||"—"]];
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
   $("ovMeta").innerHTML=campos.map(c=>
@@ -294,12 +299,12 @@ $("ovX").onclick=cerrar;
 $("ov").onclick=e=>{ if(e.target===$("ov")) cerrar(); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") cerrar(); });
 
-["fq","fCliente","fTipo","fTaller","fAuditora","fDesde","fHasta"].forEach(id=>{
+["fq","fCliente","fTipo","fTaller","fProceso","fAuditora","fDesde","fHasta"].forEach(id=>{
   $(id).addEventListener("input",render);
   $(id).addEventListener("change",render);
 });
 $("btnLimpiar").onclick=()=>{
-  ["fq","fCliente","fTipo","fTaller","fAuditora","fDesde","fHasta"].forEach(id=>{$(id).value="";});
+  ["fq","fCliente","fTipo","fTaller","fProceso","fAuditora","fDesde","fHasta"].forEach(id=>{$(id).value="";});
   render();
 };
 $("btnRecargar").onclick=cargar;
