@@ -217,7 +217,7 @@ function filtrar(){
     if(de&&f<de) return false;
     if(ha&&f>ha) return false;
     if(q){
-      const blob=[a.GRUPO,a.ESTILO,a.COLOR,a.N_AUDITORIA,a.NOTA,a.CLIENTE,a.TALLER,a.AUDITORA,a.PROCESO_TALLER]
+      const blob=[a.GRUPO,a.ESTILO,a.COLOR,a.NOTA,a.CLIENTE,a.TALLER,a.AUDITORA,a.PROCESO_TALLER]
                  .join(" ").toUpperCase();
       if(blob.indexOf(q)<0) return false;
     }
@@ -244,7 +244,8 @@ function render(){
         : '<span class="ph">sin foto</span>')+
       (fs.length>1?'<span class="np">'+fs.length+' fotos</span>':'')+'</div>'+
       '<div class="b"><div class="t">'+esc(a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
-      '<div class="s">'+esc(String(a.FECHA).slice(0,10))+' · Sem '+esc(a.SEMANA)+' · N° '+esc(a.N_AUDITORIA)+'<br>'+
+      '<div class="s">'+esc(String(a.FECHA).slice(0,10))+' · Sem '+esc(a.SEMANA)+
+      (Number(a.REPETICION)>1?' · '+esc(a.REPETICION)+'.ª vez':'')+'<br>'+
       esc(a.TALLER)+(a.PROCESO_TALLER?' ('+esc(a.PROCESO_TALLER)+')':'')+' · '+esc(a.AUDITORA)+'</div>'+
       '<span class="tag">'+esc(a.TIPO)+'</span>'+
       (a.CLIENTE?'<span class="tag">'+esc(a.CLIENTE)+'</span>':'')+
@@ -266,10 +267,13 @@ function render(){
 function abrir(a){
   const fs=FOTOS[a.ID]||[];
   $("ovT").textContent=a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
-  $("ovS").textContent=String(a.FECHA).slice(0,10)+" · Semana "+a.SEMANA+" · N° "+a.N_AUDITORIA;
+  $("ovS").textContent=String(a.FECHA).slice(0,10)+" · Semana "+a.SEMANA+
+    (Number(a.REPETICION)>1?" · "+a.REPETICION+".ª auditoría de este lote":"");
   const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Proceso",a.PROCESO_TALLER||"—"],
                 ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
-                ["Grupo",a.GRUPO],["Estilo",a.ESTILO],["Color",a.COLOR||"—"],["Recorte",a.RECORTE||"—"]];
+                ["Grupo",a.GRUPO],["Estilo",a.ESTILO],["Color",a.COLOR||"—"],
+                ["Repetición",Number(a.REPETICION)>1?a.REPETICION+".ª vez":"Primera"],
+                ["Recorte",a.RECORTE||"—"]];
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
   $("ovMeta").innerHTML=campos.map(c=>
     '<div class="m"><div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div></div>').join("");
