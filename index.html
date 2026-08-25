@@ -106,7 +106,7 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
   <div class="err" id="err"></div>
 
   <div class="bar" id="bar">
-    <div class="f"><label>Buscar</label><input type="text" id="fq" placeholder="Grupo, estilo, color, N°…"></div>
+    <div class="f"><label>Buscar</label><input type="text" id="fq" placeholder="OP, grupo, estilo, color, tela…"></div>
     <div class="f"><label>Cliente</label><select id="fCliente"></select></div>
     <div class="f"><label>Tipo</label><select id="fTipo"></select></div>
     <div class="f"><label>Taller</label><select id="fTaller"></select></div>
@@ -217,7 +217,8 @@ function filtrar(){
     if(de&&f<de) return false;
     if(ha&&f>ha) return false;
     if(q){
-      const blob=[a.GRUPO,a.ESTILO,a.COLOR,a.NOTA,a.CLIENTE,a.TALLER,a.AUDITORA,a.PROCESO_TALLER]
+      const blob=[a.OP,a.GRUPO,a.ESTILO,a.ESTILO_CLIENTE,a.COLOR,a.COD_TELA,a.DESC_TELA,a.NOTA,a.CLIENTE,
+                  a.TALLER,a.AUDITORA,a.PROCESO_TALLER]
                  .join(" ").toUpperCase();
       if(blob.indexOf(q)<0) return false;
     }
@@ -243,7 +244,7 @@ function render(){
         ? '<img loading="lazy" src="'+esc(thumbURL(hoja.THUMB_ID||hoja.DRIVE_ID))+'" alt="Hoja">'
         : '<span class="ph">sin foto</span>')+
       (fs.length>1?'<span class="np">'+fs.length+' fotos</span>':'')+'</div>'+
-      '<div class="b"><div class="t">'+esc(a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
+      '<div class="b"><div class="t">'+esc(a.OP||a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
       '<div class="s">'+esc(String(a.FECHA).slice(0,10))+' · Sem '+esc(a.SEMANA)+
       (Number(a.REPETICION)>1?' · '+esc(a.REPETICION)+'.ª vez':'')+'<br>'+
       esc(a.TALLER)+(a.PROCESO_TALLER?' ('+esc(a.PROCESO_TALLER)+')':'')+' · '+esc(a.AUDITORA)+'</div>'+
@@ -266,12 +267,14 @@ function render(){
 
 function abrir(a){
   const fs=FOTOS[a.ID]||[];
-  $("ovT").textContent=a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
+  $("ovT").textContent=(a.OP?a.OP+" · ":"")+a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
   $("ovS").textContent=String(a.FECHA).slice(0,10)+" · Semana "+a.SEMANA+
     (Number(a.REPETICION)>1?" · "+a.REPETICION+".ª auditoría de este lote":"");
   const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Proceso",a.PROCESO_TALLER||"—"],
                 ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
-                ["Grupo",a.GRUPO],["Estilo",a.ESTILO],["Color",a.COLOR||"—"],
+                ["OP",a.OP||"—"],["Grupo",a.GRUPO],["Estilo",a.ESTILO],
+                ["Estilo cliente",a.ESTILO_CLIENTE||"—"],["Color",a.COLOR||"—"],
+                ["Tela",a.COD_TELA?(a.COD_TELA+(a.DESC_TELA?" — "+a.DESC_TELA:"")):"—"],
                 ["Repetición",Number(a.REPETICION)>1?a.REPETICION+".ª vez":"Primera"],
                 ["Recorte",a.RECORTE||"—"]];
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
