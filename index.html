@@ -223,7 +223,12 @@ function filtrar(){
       if(blob.indexOf(q)<0) return false;
     }
     return true;
-  }).sort((x,y)=>String(y.FECHA).localeCompare(String(x.FECHA)) || String(y.CREADO).localeCompare(String(x.CREADO)));
+  }).sort((x,y)=>{
+    // lo más reciente primero: fecha, luego hora, y por último el momento del envío
+    const a=String(x.FECHA).slice(0,10)+" "+String(x.HORA||"00:00");
+    const b=String(y.FECHA).slice(0,10)+" "+String(y.HORA||"00:00");
+    return b.localeCompare(a) || String(y.CREADO).localeCompare(String(x.CREADO));
+  });
 }
 
 function render(){
@@ -245,7 +250,7 @@ function render(){
         : '<span class="ph">sin foto</span>')+
       (fs.length>1?'<span class="np">'+fs.length+' fotos</span>':'')+'</div>'+
       '<div class="b"><div class="t">'+esc(a.OP||a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
-      '<div class="s">'+esc(String(a.FECHA).slice(0,10))+' · Sem '+esc(a.SEMANA)+
+      '<div class="s">'+esc(String(a.FECHA).slice(0,10))+(a.HORA?' '+esc(a.HORA):'')+' · Sem '+esc(a.SEMANA)+
       (Number(a.REPETICION)>1?' · '+esc(a.REPETICION)+'.ª vez':'')+'<br>'+
       esc(a.TALLER)+(a.PROCESO_TALLER?' ('+esc(a.PROCESO_TALLER)+')':'')+' · '+esc(a.AUDITORA)+'</div>'+
       '<span class="tag">'+esc(a.TIPO)+'</span>'+
@@ -268,7 +273,7 @@ function render(){
 function abrir(a){
   const fs=FOTOS[a.ID]||[];
   $("ovT").textContent=(a.OP?a.OP+" · ":"")+a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
-  $("ovS").textContent=String(a.FECHA).slice(0,10)+" · Semana "+a.SEMANA+
+  $("ovS").textContent=String(a.FECHA).slice(0,10)+(a.HORA?" "+a.HORA:"")+" · Semana "+a.SEMANA+
     (Number(a.REPETICION)>1?" · "+a.REPETICION+".ª auditoría de este lote":"");
   const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Proceso",a.PROCESO_TALLER||"—"],
                 ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
