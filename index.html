@@ -81,6 +81,26 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
 .foto .c a{display:inline-block;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--sage);
   text-decoration:none;border:1px solid var(--warm);border-radius:6px;padding:5px 10px;}
 
+/* visor de foto: se abre encima de todo, sin salir de la página */
+.lupa{display:none;position:fixed;inset:0;background:rgba(11,29,27,.96);z-index:90;}
+.lupa.on{display:flex;flex-direction:column;}
+.lupa .lhead{display:flex;align-items:center;gap:12px;padding:12px 16px;color:#fff;flex-wrap:wrap;
+  border-bottom:1px solid rgba(255,255,255,.14);}
+.lupa .lhead .lt{font-size:14.5px;font-weight:700;}
+.lupa .lhead .ls{font-size:11.5px;color:#BFD6CE;}
+.lupa .lhead .der{margin-left:auto;display:flex;gap:8px;}
+.lupa .lbtn{background:transparent;border:1.5px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;
+  padding:7px 13px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;text-decoration:none;}
+.lupa .lbtn:hover{background:rgba(255,255,255,.12);}
+.lupa .lbody{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:10px;position:relative;}
+.lupa .lbody img{max-width:100%;max-height:100%;display:block;transition:transform .15s;transform-origin:center center;}
+.lupa .nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.45);color:#fff;
+  border:none;width:46px;height:64px;font-size:26px;cursor:pointer;border-radius:6px;}
+.lupa .nav.izq{left:10px;} .lupa .nav.der2{right:10px;}
+.lupa .nav[disabled]{opacity:.25;cursor:default;}
+.lupa .pie{padding:9px 16px calc(9px + env(safe-area-inset-bottom));color:#BFD6CE;font-size:12px;text-align:center;
+  border-top:1px solid rgba(255,255,255,.14);}
+.foto img{cursor:zoom-in;}
 .spin{display:none;position:fixed;inset:0;background:rgba(14,59,54,.85);z-index:99;align-items:center;
   justify-content:center;flex-direction:column;color:#fff;font-weight:700;gap:14px;}
 .spin.on{display:flex;}
@@ -136,6 +156,23 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
   </div>
   <div class="ovbody"><div class="meta" id="ovMeta"></div><div class="fotos" id="ovFotos"></div></div>
 </div></div>
+
+<div class="lupa" id="lupa">
+  <div class="lhead">
+    <div><div class="lt" id="luT"></div><div class="ls" id="luS"></div></div>
+    <div class="der">
+      <button class="lbtn" id="luZoom" type="button">🔍 Ampliar</button>
+      <a class="lbtn" id="luBajar" target="_blank" rel="noopener">⬇ Descargar</a>
+      <button class="lbtn" id="luX" type="button">Cerrar ✕</button>
+    </div>
+  </div>
+  <div class="lbody" id="luBody">
+    <button class="nav izq" id="luPrev" type="button">‹</button>
+    <img id="luImg" alt="">
+    <button class="nav der2" id="luNext" type="button">›</button>
+  </div>
+  <div class="pie" id="luPie"></div>
+</div>
 
 <div class="spin" id="spin"><div class="ring"></div><div id="spinTxt">Cargando…</div></div>
 
@@ -286,19 +323,69 @@ function abrir(a){
   $("ovMeta").innerHTML=campos.map(c=>
     '<div class="m"><div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div></div>').join("");
   $("ovFotos").innerHTML=fs.map((f,i)=>
-    '<div class="foto"><a href="'+esc(grandeURL(f.DRIVE_ID))+'" target="_blank" rel="noopener">'+
-    '<img loading="lazy" src="'+esc(thumbURL(f.THUMB_ID||f.DRIVE_ID))+'" alt="'+esc(f.TIPO_FOTO)+'"></a>'+
+    '<div class="foto">'+
+    '<img loading="lazy" data-i="'+i+'" src="'+esc(thumbURL(f.THUMB_ID||f.DRIVE_ID))+'" alt="'+esc(f.TIPO_FOTO)+'">'+
     '<div class="c"><b>'+(f.TIPO_FOTO==="HOJA"?"Hoja de auditoría":"Prenda observada")+'</b>'+
     (f.DESCRIPCION?'<br>'+esc(f.DESCRIPCION):'')+
     '<br><a href="'+esc(bajarURL(f.DRIVE_ID))+'" target="_blank" rel="noopener">⬇ Descargar</a></div></div>'
   ).join("") || '<div class="empty">Esta auditoría no tiene fotos.</div>';
+  // la foto se ve aquí mismo, sin abrir otra pestaña
+  LUPA_FOTOS=fs; LUPA_TIT=$("ovT").textContent;
+  document.querySelectorAll("#ovFotos img").forEach(img=>{
+    img.onclick=()=>abrirLupa(+img.dataset.i);
+  });
   $("ov").classList.add("on");
   document.body.style.overflow="hidden";
 }
 function cerrar(){ $("ov").classList.remove("on"); document.body.style.overflow=""; }
+
+/* ---------- visor de foto (misma pantalla) ---------- */
+let LUPA_FOTOS=[], LUPA_I=0, LUPA_TIT="", LUPA_ZOOM=false;
+function abrirLupa(i){
+  if(!LUPA_FOTOS.length) return;
+  LUPA_I=Math.max(0,Math.min(LUPA_FOTOS.length-1,i));
+  pintarLupa();
+  $("lupa").classList.add("on");
+  document.body.style.overflow="hidden";
+}
+function pintarLupa(){
+  const f=LUPA_FOTOS[LUPA_I];
+  LUPA_ZOOM=false;
+  const img=$("luImg");
+  img.style.transform="scale(1)";
+  img.src=grandeURL(f.DRIVE_ID);
+  $("luZoom").textContent="🔍 Ampliar";
+  $("luT").textContent=LUPA_TIT;
+  $("luS").textContent=(f.TIPO_FOTO==="HOJA"?"Hoja de auditoría":"Prenda observada")+
+    (f.DESCRIPCION?" · "+f.DESCRIPCION:"");
+  $("luBajar").href=bajarURL(f.DRIVE_ID);
+  $("luPie").textContent="Foto "+(LUPA_I+1)+" de "+LUPA_FOTOS.length+
+    (LUPA_FOTOS.length>1?" · usa las flechas para pasar":"");
+  $("luPrev").disabled=LUPA_I===0;
+  $("luNext").disabled=LUPA_I===LUPA_FOTOS.length-1;
+  $("luPrev").style.visibility=$("luNext").style.visibility=LUPA_FOTOS.length>1?"visible":"hidden";
+}
+function cerrarLupa(){ $("lupa").classList.remove("on"); $("luImg").src=""; }
+$("luX").onclick=cerrarLupa;
+$("luPrev").onclick=()=>{ if(LUPA_I>0){LUPA_I--;pintarLupa();} };
+$("luNext").onclick=()=>{ if(LUPA_I<LUPA_FOTOS.length-1){LUPA_I++;pintarLupa();} };
+$("luZoom").onclick=()=>{
+  LUPA_ZOOM=!LUPA_ZOOM;
+  $("luImg").style.transform=LUPA_ZOOM?"scale(2)":"scale(1)";
+  $("luZoom").textContent=LUPA_ZOOM?"🔍 Reducir":"🔍 Ampliar";
+};
+$("luBody").onclick=e=>{ if(e.target.id==="luBody") cerrarLupa(); };
 $("ovX").onclick=cerrar;
 $("ov").onclick=e=>{ if(e.target===$("ov")) cerrar(); };
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") cerrar(); });
+document.addEventListener("keydown",e=>{
+  if($("lupa").classList.contains("on")){
+    if(e.key==="Escape") cerrarLupa();
+    else if(e.key==="ArrowLeft") $("luPrev").click();
+    else if(e.key==="ArrowRight") $("luNext").click();
+    return;
+  }
+  if(e.key==="Escape") cerrar();
+});
 
 ["fq","fCliente","fTipo","fTaller","fProceso","fAuditora","fDesde","fHasta"].forEach(id=>{
   $(id).addEventListener("input",render);
