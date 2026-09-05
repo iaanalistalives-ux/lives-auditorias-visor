@@ -139,14 +139,14 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="v" id="kAud">—</div><div class="l">Auditorías mostradas</div></div>
-    <div class="kpi"><div class="v" id="kFot">—</div><div class="l">Fotos</div></div>
-    <div class="kpi"><div class="v" id="kPre">—</div><div class="l">Con prendas observadas</div></div>
+    <div class="kpi"><div class="v" id="kAud">—</div><div class="l">Registros mostrados</div></div>
+    <div class="kpi"><div class="v" id="kFot">—</div><div class="l">Fotos enviadas</div></div>
+    <div class="kpi"><div class="v" id="kPre">—</div><div class="l">Con fotos de prendas</div></div>
     <div class="kpi"><div class="v" id="kTal">—</div><div class="l">Talleres</div></div>
   </div>
 
   <div class="grid" id="grid"></div>
-  <div class="empty" id="vacio" style="display:none">No hay auditorías con esos filtros.</div>
+  <div class="empty" id="vacio" style="display:none">No hay registros con esos filtros.</div>
 </div>
 
 <div class="ov" id="ov"><div class="ovbox">
@@ -201,7 +201,7 @@ async function cargar(){
     showErr("Falta pegar la URL del Apps Script en este archivo (constante APP_URL, arriba del todo).");
     return;
   }
-  spin(true,"Cargando auditorías…");
+  spin(true,"Cargando registros…");
   showErr("");
   try{
     const r=await fetch(APP_URL+"?accion=listar");
@@ -289,7 +289,7 @@ function render(){
       (fs.length>1?'<span class="np">'+fs.length+' fotos</span>':'')+'</div>'+
       '<div class="b"><div class="t">'+esc(a.OP||a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
       '<div class="s">'+esc(String(a.FECHA).slice(0,10))+(a.HORA?' '+esc(a.HORA):'')+' · Sem '+esc(a.SEMANA)+
-      (Number(a.REPETICION)>1?' · '+esc(a.REPETICION)+'.ª vez':'')+'<br>'+
+      (Number(a.REPETICION)>1?' · '+esc(a.REPETICION)+'.º':'')+'<br>'+
       esc(a.TALLER)+(a.PROCESO_TALLER?' ('+esc(a.PROCESO_TALLER)+')':'')+' · '+esc(a.AUDITORA)+'</div>'+
       '<span class="tag">'+esc(a.TIPO)+'</span>'+
       (a.CLIENTE?'<span class="tag">'+esc(a.CLIENTE)+'</span>':'')+
@@ -304,7 +304,7 @@ function render(){
   $("kTal").textContent=talleres.size;
   $("vacio").style.display=list.length?"none":"block";
   $("frescura").innerHTML= cargado
-    ? ("Actualizado "+cargado.toLocaleString("es-PE")+"<br>"+AUDS.length+" auditorías en total")
+    ? ("Actualizado "+cargado.toLocaleString("es-PE")+"<br>"+AUDS.length+" registros en total")
     : "";
 }
 
@@ -312,13 +312,13 @@ function abrir(a){
   const fs=FOTOS[a.ID]||[];
   $("ovT").textContent=(a.OP?a.OP+" · ":"")+a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
   $("ovS").textContent=String(a.FECHA).slice(0,10)+(a.HORA?" "+a.HORA:"")+" · Semana "+a.SEMANA+
-    (Number(a.REPETICION)>1?" · "+a.REPETICION+".ª auditoría de este lote":"");
+    (Number(a.REPETICION)>1?" · "+a.REPETICION+".º registro igual":"");
   const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Proceso",a.PROCESO_TALLER||"—"],
                 ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
                 ["OP",a.OP||"—"],["Grupo",a.GRUPO],["Estilo",a.ESTILO],
                 ["Estilo cliente",a.ESTILO_CLIENTE||"—"],["Color",a.COLOR||"—"],
                 ["Tela",a.COD_TELA?(a.COD_TELA+(a.DESC_TELA?" — "+a.DESC_TELA:"")):"—"],
-                ["Repetición",Number(a.REPETICION)>1?a.REPETICION+".ª vez":"Primera"],
+                ["Repetición",Number(a.REPETICION)>1?a.REPETICION+".º registro igual":"Primero"],
                 ["Recorte",a.RECORTE||"—"]];
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
   $("ovMeta").innerHTML=campos.map(c=>
@@ -326,10 +326,10 @@ function abrir(a){
   $("ovFotos").innerHTML=fs.map((f,i)=>
     '<div class="foto">'+
     '<img loading="lazy" data-i="'+i+'" src="'+esc(thumbURL(f.THUMB_ID||f.DRIVE_ID))+'" alt="'+esc(f.TIPO_FOTO)+'">'+
-    '<div class="c"><b>'+(f.TIPO_FOTO==="HOJA"?"Hoja de auditoría":"Prenda observada")+'</b>'+
+    '<div class="c"><b>'+(f.TIPO_FOTO==="HOJA"?"Hoja del documento":"Prenda observada")+'</b>'+
     (f.DESCRIPCION?'<br>'+esc(f.DESCRIPCION):'')+
     '<br><a href="'+esc(bajarURL(f.DRIVE_ID))+'" target="_blank" rel="noopener">⬇ Descargar</a></div></div>'
-  ).join("") || '<div class="empty">Esta auditoría no tiene fotos.</div>';
+  ).join("") || '<div class="empty">Este registro no tiene fotos.</div>';
   // la foto se ve aquí mismo, sin abrir otra pestaña
   LUPA_FOTOS=fs; LUPA_TIT=$("ovT").textContent;
   document.querySelectorAll("#ovFotos img").forEach(img=>{
@@ -373,7 +373,7 @@ function pintarLupa(){
   img.src=grandeURL(f.DRIVE_ID);
   $("luZoom").textContent="🔍 Ampliar";
   $("luT").textContent=LUPA_TIT;
-  $("luS").textContent=(f.TIPO_FOTO==="HOJA"?"Hoja de auditoría":"Prenda observada")+
+  $("luS").textContent=(f.TIPO_FOTO==="HOJA"?"Hoja del documento":"Prenda observada")+
     (f.DESCRIPCION?" · "+f.DESCRIPCION:"");
   $("luBajar").href=bajarURL(f.DRIVE_ID);
   $("luPie").textContent="Foto "+(LUPA_I+1)+" de "+LUPA_FOTOS.length+
