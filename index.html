@@ -161,6 +161,7 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
   <div class="lhead">
     <div><div class="lt" id="luT"></div><div class="ls" id="luS"></div></div>
     <div class="der">
+      <button class="lbtn" id="luGirar" type="button">↻ Girar</button>
       <button class="lbtn" id="luZoom" type="button">🔍 Ampliar</button>
       <a class="lbtn" id="luBajar" target="_blank" rel="noopener">⬇ Descargar</a>
       <button class="lbtn" id="luX" type="button">Cerrar ✕</button>
@@ -340,7 +341,7 @@ function abrir(a){
 function cerrar(){ $("ov").classList.remove("on"); document.body.style.overflow=""; }
 
 /* ---------- visor de foto (misma pantalla) ---------- */
-let LUPA_FOTOS=[], LUPA_I=0, LUPA_TIT="", LUPA_ZOOM=false;
+let LUPA_FOTOS=[], LUPA_I=0, LUPA_TIT="", LUPA_ZOOM=false, LUPA_GIRO=0;
 function abrirLupa(i){
   if(!LUPA_FOTOS.length) return;
   LUPA_I=Math.max(0,Math.min(LUPA_FOTOS.length-1,i));
@@ -348,11 +349,27 @@ function abrirLupa(i){
   $("lupa").classList.add("on");
   document.body.style.overflow="hidden";
 }
+/* Al girar 90° el alto y el ancho se intercambian, así que se intercambian también
+   los límites de tamaño: si no, la foto girada se sale de la pantalla. */
+function aplicarTransform(){
+  const img=$("luImg"), body=$("luBody");
+  const vertical = LUPA_GIRO===90 || LUPA_GIRO===270;
+  if(vertical){
+    img.style.maxWidth  = Math.max(80, body.clientHeight-20)+"px";
+    img.style.maxHeight = Math.max(80, body.clientWidth-20)+"px";
+  } else {
+    img.style.maxWidth="100%";
+    img.style.maxHeight="100%";
+  }
+  img.style.transform="rotate("+LUPA_GIRO+"deg) scale("+(LUPA_ZOOM?2:1)+")";
+}
 function pintarLupa(){
   const f=LUPA_FOTOS[LUPA_I];
-  LUPA_ZOOM=false;
+  LUPA_ZOOM=false; LUPA_GIRO=0;
   const img=$("luImg");
-  img.style.transform="scale(1)";
+  img.style.maxWidth="100%"; img.style.maxHeight="100%";
+  img.style.transform="rotate(0deg) scale(1)";
+  img.onload=aplicarTransform;
   img.src=grandeURL(f.DRIVE_ID);
   $("luZoom").textContent="🔍 Ampliar";
   $("luT").textContent=LUPA_TIT;
@@ -371,9 +388,11 @@ $("luPrev").onclick=()=>{ if(LUPA_I>0){LUPA_I--;pintarLupa();} };
 $("luNext").onclick=()=>{ if(LUPA_I<LUPA_FOTOS.length-1){LUPA_I++;pintarLupa();} };
 $("luZoom").onclick=()=>{
   LUPA_ZOOM=!LUPA_ZOOM;
-  $("luImg").style.transform=LUPA_ZOOM?"scale(2)":"scale(1)";
   $("luZoom").textContent=LUPA_ZOOM?"🔍 Reducir":"🔍 Ampliar";
+  aplicarTransform();
 };
+$("luGirar").onclick=()=>{ LUPA_GIRO=(LUPA_GIRO+90)%360; aplicarTransform(); };
+window.addEventListener("resize",()=>{ if($("lupa").classList.contains("on")) aplicarTransform(); });
 $("luBody").onclick=e=>{ if(e.target.id==="luBody") cerrarLupa(); };
 $("ovX").onclick=cerrar;
 $("ov").onclick=e=>{ if(e.target===$("ov")) cerrar(); };
@@ -382,6 +401,7 @@ document.addEventListener("keydown",e=>{
     if(e.key==="Escape") cerrarLupa();
     else if(e.key==="ArrowLeft") $("luPrev").click();
     else if(e.key==="ArrowRight") $("luNext").click();
+    else if(e.key==="r"||e.key==="R") $("luGirar").click();
     return;
   }
   if(e.key==="Escape") cerrar();
