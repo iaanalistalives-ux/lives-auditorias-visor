@@ -323,11 +323,18 @@ function abrir(a){
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
   $("ovMeta").innerHTML=campos.map(c=>
     '<div class="m"><div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div></div>').join("");
+  // las fotos del documento se numeran como páginas; las de prenda aparte
+  const nHojas=fs.filter(x=>x.TIPO_FOTO==="HOJA").length;
+  let cH=0, cE=0;
+  fs.forEach(f=>{
+    if(f.TIPO_FOTO==="HOJA"){ cH++; f.__et = nHojas>1 ? ("Página "+cH+" de "+nHojas) : "Hoja del documento"; }
+    else { cE++; f.__et = "Prenda "+cE; }
+  });
   $("ovFotos").innerHTML=fs.map((f,i)=>
     '<div class="foto">'+
     '<img loading="lazy" data-i="'+i+'" src="'+esc(thumbURL(f.THUMB_ID||f.DRIVE_ID))+'" alt="'+esc(f.TIPO_FOTO)+'">'+
-    '<div class="c"><b>'+(f.TIPO_FOTO==="HOJA"?"Hoja del documento":"Prenda observada")+'</b>'+
-    (f.DESCRIPCION?'<br>'+esc(f.DESCRIPCION):'')+
+    '<div class="c"><b>'+esc(f.__et)+'</b>'+
+    ((f.DESCRIPCION && f.DESCRIPCION!==f.__et)?'<br>'+esc(f.DESCRIPCION):'')+
     '<br><a href="'+esc(bajarURL(f.DRIVE_ID))+'" target="_blank" rel="noopener">⬇ Descargar</a></div></div>'
   ).join("") || '<div class="empty">Este registro no tiene fotos.</div>';
   // la foto se ve aquí mismo, sin abrir otra pestaña
@@ -373,8 +380,9 @@ function pintarLupa(){
   img.src=grandeURL(f.DRIVE_ID);
   $("luZoom").textContent="🔍 Ampliar";
   $("luT").textContent=LUPA_TIT;
-  $("luS").textContent=(f.TIPO_FOTO==="HOJA"?"Hoja del documento":"Prenda observada")+
-    (f.DESCRIPCION?" · "+f.DESCRIPCION:"");
+  const et=f.__et || (f.TIPO_FOTO==="HOJA"?"Hoja del documento":"Prenda observada");
+  // la descripción que mandó el celular suele repetir la etiqueta: no se muestra dos veces
+  $("luS").textContent = et + ((f.DESCRIPCION && f.DESCRIPCION!==et) ? " · "+f.DESCRIPCION : "");
   $("luBajar").href=bajarURL(f.DRIVE_ID);
   $("luPie").textContent="Foto "+(LUPA_I+1)+" de "+LUPA_FOTOS.length+
     (LUPA_FOTOS.length>1?" · usa las flechas para pasar":"");
