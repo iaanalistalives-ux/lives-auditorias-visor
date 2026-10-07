@@ -624,8 +624,7 @@ function firma(ruta){ const f=FIRMAS[ruta]; return (f && f.vence>Date.now()) ? f
 async function firmar(rutas){
   const faltan=[...new Set(rutas.filter(r=>r && !firma(r)))];
   if(!faltan.length) return;
-  const tk = window.LIVES_SESION ? await window.LIVES_SESION.llave() : null;
-  if(!tk) return;
+  const tk = (window.LIVES_SESION ? await window.LIVES_SESION.llave() : null) || SB_KEY;   /* sin sesión: llave pública (lectura abierta) */
   for(let i=0;i<faltan.length;i+=300){
     const lote=faltan.slice(i,i+300);
     try{
