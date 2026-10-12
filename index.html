@@ -620,15 +620,22 @@ async function rpc(nombre, cuerpo, ms){
 
 /* ---------- enlaces firmados de las fotos ---------- */
 const FIRMAS={};                 // ruta -> {url, vence}
+/* 12/10 · las fotos de Auditoría Final viven en otro almacén ("auditorias-fotos"):
+   cada ruta recuerda su almacén y se firma en el que corresponde. */
+const BUCKET_DE={};              // ruta -> almacén (si no está, "fotos-taller")
 function firma(ruta){ const f=FIRMAS[ruta]; return (f && f.vence>Date.now()) ? f.url : ""; }
 async function firmar(rutas){
   const faltan=[...new Set(rutas.filter(r=>r && !firma(r)))];
   if(!faltan.length) return;
   const tk = (window.LIVES_SESION ? await window.LIVES_SESION.llave() : null) || SB_KEY;   /* sin sesión: llave pública (lectura abierta) */
-  for(let i=0;i<faltan.length;i+=300){
-    const lote=faltan.slice(i,i+300);
+  const porBucket={};
+  faltan.forEach(r=>{ const b=BUCKET_DE[r]||BUCKET; (porBucket[b]=porBucket[b]||[]).push(r); });
+  for(const bk of Object.keys(porBucket)){
+  const lista=porBucket[bk];
+  for(let i=0;i<lista.length;i+=300){
+    const lote=lista.slice(i,i+300);
     try{
-      const r=await fetch(SB_URL+"/storage/v1/object/sign/"+BUCKET,{method:"POST",
+      const r=await fetch(SB_URL+"/storage/v1/object/sign/"+bk,{method:"POST",
         headers:{"Content-Type":"application/json",Authorization:"Bearer "+tk,apikey:SB_KEY},
         body:JSON.stringify({expiresIn:FIRMA_SEG, paths:lote})});
       if(!r.ok) continue;
@@ -639,6 +646,7 @@ async function firmar(rutas){
         if(x.path && u) FIRMAS[x.path]={url:(u.indexOf("http")===0?u:SB_URL+"/storage/v1"+u), vence};
       });
     }catch(e){}
+  }
   }
 }
 const thumbURL = f => firma(f.RUTA_MINI||f.RUTA) || firma(f.RUTA);
@@ -651,7 +659,12 @@ async function cargar(){
   spin(true,"Cargando registros…");
   showErr("");
   const de=$("fDesde").value, ha=$("fHasta").value;
-  const d=await rpc("fotos_listar",{p_desde:de||null, p_hasta:ha||null});
+  /* Taller y Auditoría Final se piden a la vez. Si solo falla Auditoría Final, se
+     muestra taller y se avisa; nunca se cae todo por eso. */
+  const [d, dfin]=await Promise.all([
+    rpc("fotos_listar",{p_desde:de||null, p_hasta:ha||null}),
+    rpc("fotos_listar_final",{p_desde:de||null, p_hasta:ha||null})
+  ]);
   if(mia!==SEQ) return;
   if(!d || !d.ok){
     const e=d&&d.error;
@@ -661,11 +674,16 @@ async function cargar(){
           : "La base de datos respondió con un error: "+e);
     spin(false); return;
   }
-  AUDS=d.auditorias||[];
-  TOTAL=d.total||AUDS.length;
+  const finOk = dfin && dfin.ok;
+  AUDS=(d.auditorias||[]).concat(finOk ? (dfin.auditorias||[]) : []);
+  TOTAL=(d.total||(d.auditorias||[]).length) + (finOk ? (dfin.total||0) : 0);
   RANGO=(de||ha) ? "rango" : "recientes";
   FOTOS={};
-  (d.fotos||[]).forEach(f=>{ (FOTOS[f.ID_AUDITORIA]=FOTOS[f.ID_AUDITORIA]||[]).push(f); });
+  (d.fotos||[]).concat(finOk ? (dfin.fotos||[]) : []).forEach(f=>{
+    if(f.BUCKET){ BUCKET_DE[f.RUTA]=f.BUCKET; if(f.RUTA_MINI) BUCKET_DE[f.RUTA_MINI]=f.BUCKET; }
+    (FOTOS[f.ID_AUDITORIA]=FOTOS[f.ID_AUDITORIA]||[]).push(f);
+  });
+  if(!finOk) showErr("No se pudieron cargar las fotos de Auditoría Final. Pulsa Actualizar para reintentar.");
   Object.values(FOTOS).forEach(a=>a.sort((x,y)=>(+x.ORDEN)-(+y.ORDEN)));
   // miniatura de portada de cada tarjeta
   spin(true,"Preparando fotos…");
@@ -770,13 +788,16 @@ async function abrir(a){
   $("ovT").textContent=(a.OP?a.OP+" · ":"")+a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
   $("ovS").textContent=String(a.FECHA).slice(0,10)+(a.HORA?" "+a.HORA:"")+" · Semana "+a.SEMANA+
     (Number(a.REPETICION)>1?" · "+a.REPETICION+".º registro igual":"");
-  const campos=[["Tipo",a.TIPO],["Taller",a.TALLER],["Proceso",a.PROCESO_TALLER||"—"],
+  const esFinal = a.ORIGEN==="AUDITORIA FINAL";
+  const campos=[["Tipo",a.TIPO],["Taller",a.TALLER||"—"],["Proceso",a.PROCESO_TALLER||"—"],
                 ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
                 ["OP",a.OP||"—"],["Grupo",a.GRUPO],["Estilo",a.ESTILO],
                 ["Estilo cliente",a.ESTILO_CLIENTE||"—"],["Color",a.COLOR||"—"],
-                ["Tela",a.COD_TELA?(a.COD_TELA+(a.DESC_TELA?" — "+a.DESC_TELA:"")):"—"],
-                ["Repetición",Number(a.REPETICION)>1?a.REPETICION+".º registro igual":"Primero"],
-                ["Recorte",a.RECORTE||"—"]];
+                ["Tela",a.COD_TELA?(a.COD_TELA+(a.DESC_TELA?" — "+a.DESC_TELA:"")):"—"]];
+  if(!esFinal){
+    campos.push(["Repetición",Number(a.REPETICION)>1?a.REPETICION+".º registro igual":"Primero"]);
+    campos.push(["Recorte",a.RECORTE||"—"]);
+  }
   if(a.REGISTRADO_POR) campos.push(["Subido por (usuario)",a.REGISTRADO_POR]);
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
   $("ovMeta").innerHTML=campos.map(c=>
@@ -784,8 +805,14 @@ async function abrir(a){
   // las fotos del documento se numeran como páginas; las de prenda aparte
   const nHojas=fs.filter(x=>x.TIPO_FOTO==="HOJA").length;
   let cH=0, cE=0;
+  const cuentaEt={}, totalEt={};
+  fs.forEach(f=>{ if(f.ETIQUETA) totalEt[f.ETIQUETA]=(totalEt[f.ETIQUETA]||0)+1; });
   fs.forEach(f=>{
-    if(f.TIPO_FOTO==="HOJA"){ cH++; f.__et = nHojas>1 ? ("Página "+cH+" de "+nHojas) : "Hoja del documento"; }
+    if(f.ETIQUETA){       // Auditoría Final: Medidas 1 de 3, Defecto 2…
+      cuentaEt[f.ETIQUETA]=(cuentaEt[f.ETIQUETA]||0)+1;
+      f.__et = f.ETIQUETA + (totalEt[f.ETIQUETA]>1 ? " "+cuentaEt[f.ETIQUETA]+" de "+totalEt[f.ETIQUETA] : "");
+    }
+    else if(f.TIPO_FOTO==="HOJA"){ cH++; f.__et = nHojas>1 ? ("Página "+cH+" de "+nHojas) : "Hoja del documento"; }
     else { cE++; f.__et = "Prenda "+cE; }
   });
   $("ovFotos").innerHTML=fs.map((f,i)=>
