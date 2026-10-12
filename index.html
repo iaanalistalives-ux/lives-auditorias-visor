@@ -618,6 +618,7 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
 html.embebido .header{display:none!important}
 html.embebido body{padding-top:0!important;margin-top:0!important}
 </style>
+<style id="lsSinActCss">/* 12/10/2026: sin botón Actualizar propio; se usa el actualizar del portal */#btnRecargar{display:none!important}</style>
 </head>
 <body>
 
@@ -778,7 +779,7 @@ async function cargar(){
     const e=d&&d.error;
     showErr(e==="SIN_PERMISO" ? "Tu usuario no tiene permiso para ver estas auditorías. Avisa a Christian."
           : e==="SIN_SESION"  ? "Tu sesión venció: vuelve a entrar al portal."
-          : e==="SIN_CONEXION"? "No hay conexión con la base de datos. Revisa la señal y pulsa Actualizar."
+          : e==="SIN_CONEXION"? "No hay conexión con la base de datos. Revisa la señal y actualiza la pantalla desde el portal."
           : "La base de datos respondió con un error: "+e);
     spin(false); return;
   }
@@ -791,7 +792,7 @@ async function cargar(){
     if(f.BUCKET){ BUCKET_DE[f.RUTA]=f.BUCKET; if(f.RUTA_MINI) BUCKET_DE[f.RUTA_MINI]=f.BUCKET; }
     (FOTOS[f.ID_AUDITORIA]=FOTOS[f.ID_AUDITORIA]||[]).push(f);
   });
-  if(!finOk) showErr("No se pudieron cargar las fotos de Auditoría Final. Pulsa Actualizar para reintentar.");
+  if(!finOk) showErr("No se pudieron cargar las fotos de Auditoría Final. Actualiza la pantalla desde el portal para reintentar.");
   Object.values(FOTOS).forEach(a=>a.sort((x,y)=>(+x.ORDEN)-(+y.ORDEN)));
   // miniatura de portada de cada tarjeta
   spin(true,"Preparando fotos…");
