@@ -439,6 +439,7 @@ body{background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-seri
 .kpi .l{font-size:12px;color:#333;margin-top:3px;font-weight:600;}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px;}
+.lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
 .card{background:#fff;border:1px solid var(--warm);border-radius:8px;overflow:hidden;cursor:pointer;transition:.12s;}
 .card:hover{border-color:var(--sage);box-shadow:0 3px 12px rgba(0,0,0,.09);}
 .card .th{position:relative;height:180px;background:var(--warm-light);display:flex;align-items:center;justify-content:center;}
@@ -548,6 +549,7 @@ html.embebido body{padding-top:0!important;margin-top:0!important}
   </div>
 
   <div class="grid" id="grid"></div>
+  <div class="lsTope500" id="tope500" style="display:none"></div>
   <div class="empty" id="vacio" style="display:none">No hay registros con esos filtros.</div>
 </div>
 
@@ -687,12 +689,12 @@ async function cargar(){
   Object.values(FOTOS).forEach(a=>a.sort((x,y)=>(+x.ORDEN)-(+y.ORDEN)));
   // miniatura de portada de cada tarjeta
   spin(true,"Preparando fotos…");
-  await firmar(AUDS.map(a=>{ const fs=FOTOS[a.ID]||[]; const h=fs.find(f=>f.TIPO_FOTO==="HOJA")||fs[0];
-                             return h ? (h.RUTA_MINI||h.RUTA) : ""; }));
+  /* Regla 500 (12/10): solo se firman las portadas de las tarjetas que se dibujan. */
+  llenarFiltros();
+  await firmar(portadas(aDibujar(filtrar())));
   if(mia!==SEQ) return;
   cargado=new Date();
-  llenarFiltros();
-  render();
+  await render();
   spin(false);
 }
 
@@ -740,8 +742,27 @@ function filtrar(){
   });
 }
 
-function render(){
+/* Regla 500 (12/10/2026): sin filtros se dibujan solo las 500 tarjetas más recientes;
+   con cualquier filtro, todas las que cumplen (tope de seguridad de 500 si pasan de 3.000).
+   Los KPI y el Excel siguen usando la lista completa (filtrar()). */
+const TOPE=500, TOPE_SEG=3000;
+function hayFiltro(){
+  return ["fq","fCliente","fTipo","fTaller","fProceso","fAuditora","fDesde","fHasta"].some(id=>String($(id).value||"").trim()!=="");
+}
+function aDibujar(list){
+  return (!hayFiltro() || list.length>TOPE_SEG) ? list.slice(0,TOPE) : list;
+}
+function portadas(list){
+  return list.map(a=>{ const fs=FOTOS[a.ID]||[]; const h=fs.find(f=>f.TIPO_FOTO==="HOJA")||fs[0];
+                       return h ? (h.RUTA_MINI||h.RUTA) : ""; });
+}
+let RSEQ=0;
+async function render(){
+  const mia=++RSEQ;
   const list=filtrar(), g=$("grid");
+  const ver=aDibujar(list);
+  await firmar(portadas(ver));
+  if(mia!==RSEQ) return;
   g.innerHTML="";
   let nf=0, conPrenda=0;
   const talleres=new Set();
@@ -750,6 +771,9 @@ function render(){
     nf+=fs.length;
     if(fs.filter(f=>f.TIPO_FOTO!=="HOJA").length) conPrenda++;
     if(a.TALLER) talleres.add(a.TALLER);
+  });
+  ver.forEach(a=>{
+    const fs=FOTOS[a.ID]||[];
     const hoja=fs.find(f=>f.TIPO_FOTO==="HOJA")||fs[0];
     const c=document.createElement("div");
     c.className="card";
@@ -774,6 +798,14 @@ function render(){
   $("kPre").textContent=conPrenda;
   $("kTal").textContent=talleres.size;
   $("vacio").style.display=list.length?"none":"block";
+  const tp=$("tope500");
+  if(ver.length<list.length){
+    const n=(!hayFiltro() && RANGO!=="rango" && TOTAL>list.length) ? TOTAL : list.length;
+    tp.textContent = hayFiltro()
+      ? "Se muestran los 500 registros más recientes de "+n.toLocaleString("es-PE")+". Afina los filtros para ver los demás."
+      : "Se muestran los 500 registros más recientes de "+n.toLocaleString("es-PE")+". Usa los filtros para ver los demás.";
+    tp.style.display="block";
+  } else { tp.textContent=""; tp.style.display="none"; }
   $("frescura").innerHTML= cargado
     ? ("Actualizado "+cargado.toLocaleString("es-PE")+"<br>"+
        (RANGO==="rango" ? AUDS.length+" registros en el rango de fechas"
