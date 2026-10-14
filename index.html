@@ -988,7 +988,8 @@ async function render(){
         ? '<img loading="lazy" src="'+esc(thumbURL(hoja))+'" alt="Hoja">'
         : '<span class="ph">sin foto</span>')+
       (fs.length>1?'<span class="np">'+fs.length+' fotos</span>':'')+'</div>'+
-      '<div class="b"><div class="t">'+esc(a.OP||a.GRUPO)+' · '+esc(a.ESTILO)+'</div>'+
+      /* 14/10 · el grupo va a la vista en el título: OP · GRUPO · ESTILO (lo que falte se omite) */
+      '<div class="b"><div class="t">'+([a.OP,a.GRUPO,a.ESTILO].map(v=>String(v||'').trim()).filter(Boolean).map(esc).join(' · ')||'Sin OP')+'</div>'+
       '<div class="s">'+esc(String(a.FECHA).slice(0,10))+(a.HORA?' '+esc(a.HORA):'')+' · Sem '+esc(a.SEMANA)+
       (Number(a.REPETICION)>1?' · '+esc(a.REPETICION)+'.º':'')+'<br>'+
       esc(a.TALLER)+(a.PROCESO_TALLER?' ('+esc(a.PROCESO_TALLER)+')':'')+' · '+esc(a.AUDITORA)+'</div>'+
