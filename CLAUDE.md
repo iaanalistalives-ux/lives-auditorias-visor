@@ -3,7 +3,7 @@
 Las reglas generales de trabajo están en el repo privado `lives-instrucciones` (CLAUDE.md). Este archivo solo describe esta herramienta.
 
 ## Qué hace
-`index.html` es una **consulta de solo lectura**: "Hojas escaneadas y prendas observadas". Junta las capturas de `lives-auditorias-taller` y las fotos de `lives-auditoria-final`.
+`index.html` es una **consulta de solo lectura**: "Hojas escaneadas y prendas observadas". Junta las capturas de `lives-auditorias-taller`, las fotos de `lives-auditoria-final` y (desde el 28/10/2026) las de `lives-auditoria-artes`.
 - Filtros:
   - Búsqueda libre.
   - Cliente, tipo, taller, proceso y auditora.
@@ -17,8 +17,9 @@ Las reglas generales de trabajo están en el repo privado `lives-instrucciones` 
 ## Base de datos (Supabase lives-datos)
 - `fotos_listar`: capturas de taller, de las tablas `fotos_registros` y `fotos_archivos`.
 - `fotos_listar_final`: fotos de Auditoría Final, de las tablas `auditorias` y `fotos_auditoria`.
-- Las dos se llaman a la vez. Si falla solo la de Auditoría Final, igual se muestra lo de taller, con un aviso.
-- Fotos: enlaces firmados que vencen en 6 h. Taller usa el bucket `fotos-taller` y Auditoría Final el bucket `auditorias-fotos`; cada foto trae el nombre de su bucket.
+- `fotos_listar_artes`: fotos de Auditoría de Artes (FO-256), de las tablas `art_auditorias` y `art_fotos`; tipo "AUDITORIA DE ARTES" (el mismo nombre que el tipo de documento de taller, para que salgan juntas en el filtro). En el detalle muestra Servicio, Resultado y un enlace "Ver reporte FO-256" a `lives-auditoria-artes/ver.html`.
+- Las tres se llaman a la vez. Si falla Auditoría Final o Artes, igual se muestra lo demás, con un aviso.
+- Fotos: enlaces firmados que vencen en 6 h. Taller usa el bucket `fotos-taller`, Auditoría Final el bucket `auditorias-fotos` y Artes el bucket `artes-fotos`; cada foto trae el nombre de su bucket.
 
 ## Quién la usa
 Según las entradas por el portal de los últimos 30 días al 21/10/2026: 10 personas. Son supervisoras de calidad (3), auditoras de calidad (3), la digitadora de Calidad Manufactura y personal de Desarrollo.

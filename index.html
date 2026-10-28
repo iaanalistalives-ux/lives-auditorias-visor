@@ -867,11 +867,12 @@ async function cargar(){
   spin(true,"Cargando registros…");
   showErr("");
   const de=$("fDesde").value, ha=$("fHasta").value;
-  /* Taller y Auditoría Final se piden a la vez. Si solo falla Auditoría Final, se
-     muestra taller y se avisa; nunca se cae todo por eso. */
-  const [d, dfin]=await Promise.all([
+  /* Taller, Auditoría Final y Auditoría de Artes (28/10/2026) se piden a la vez. Si falla
+     Auditoría Final o Artes, se muestra lo demás y se avisa; nunca se cae todo por eso. */
+  const [d, dfin, dart]=await Promise.all([
     rpc("fotos_listar",{p_desde:de||null, p_hasta:ha||null}),
-    rpc("fotos_listar_final",{p_desde:de||null, p_hasta:ha||null})
+    rpc("fotos_listar_final",{p_desde:de||null, p_hasta:ha||null}),
+    rpc("fotos_listar_artes",{p_desde:de||null, p_hasta:ha||null})
   ]);
   if(mia!==SEQ) return;
   if(!d || !d.ok){
@@ -882,16 +883,16 @@ async function cargar(){
           : "La base de datos respondió con un error: "+e);
     spin(false); return;
   }
-  const finOk = dfin && dfin.ok;
-  AUDS=(d.auditorias||[]).concat(finOk ? (dfin.auditorias||[]) : []);
-  TOTAL=(d.total||(d.auditorias||[]).length) + (finOk ? (dfin.total||0) : 0);
+  const finOk = dfin && dfin.ok, artOk = dart && dart.ok;
+  AUDS=(d.auditorias||[]).concat(finOk ? (dfin.auditorias||[]) : [], artOk ? (dart.auditorias||[]) : []);
+  TOTAL=(d.total||(d.auditorias||[]).length) + (finOk ? (dfin.total||0) : 0) + (artOk ? (dart.total||0) : 0);
   RANGO=(de||ha) ? "rango" : "recientes";
   FOTOS={};
-  (d.fotos||[]).concat(finOk ? (dfin.fotos||[]) : []).forEach(f=>{
+  (d.fotos||[]).concat(finOk ? (dfin.fotos||[]) : [], artOk ? (dart.fotos||[]) : []).forEach(f=>{
     if(f.BUCKET){ BUCKET_DE[f.RUTA]=f.BUCKET; if(f.RUTA_MINI) BUCKET_DE[f.RUTA_MINI]=f.BUCKET; }
     (FOTOS[f.ID_AUDITORIA]=FOTOS[f.ID_AUDITORIA]||[]).push(f);
   });
-  if(!finOk) showErr("No se pudieron cargar las fotos de Auditoría Final. Actualiza la pantalla desde el portal para reintentar.");
+  if(!finOk || !artOk) showErr("No se pudieron cargar las fotos de "+(!finOk&&!artOk?"Auditoría Final ni de Auditoría de Artes":(!finOk?"Auditoría Final":"Auditoría de Artes"))+". Actualiza la pantalla desde el portal para reintentar.");
   Object.values(FOTOS).forEach(a=>a.sort((x,y)=>(+x.ORDEN)-(+y.ORDEN)));
   // miniatura de portada de cada tarjeta
   spin(true,"Preparando fotos…");
@@ -1027,8 +1028,9 @@ async function abrir(a){
   $("ovT").textContent=(a.OP?a.OP+" · ":"")+a.GRUPO+" · "+a.ESTILO+(a.COLOR?" · "+a.COLOR:"");
   $("ovS").textContent=String(a.FECHA).slice(0,10)+(a.HORA?" "+a.HORA:"")+" · Semana "+a.SEMANA+
     (Number(a.REPETICION)>1?" · "+a.REPETICION+".º registro igual":"");
-  const esFinal = a.ORIGEN==="AUDITORIA FINAL";
-  const campos=[["Tipo",a.TIPO],["Taller",a.TALLER||"—"],["Proceso",a.PROCESO_TALLER||"—"],
+  const esArtes = a.ORIGEN==="AUDITORIA ARTES";
+  const esFinal = a.ORIGEN==="AUDITORIA FINAL" || esArtes;
+  const campos=[["Tipo",a.TIPO],[esArtes?"Servicio":"Taller",a.TALLER||"—"],["Proceso",a.PROCESO_TALLER||"—"],
                 ["Auditora",a.AUDITORA],["Cliente",a.CLIENTE||"—"],
                 ["OP",a.OP||"—"],["Grupo",a.GRUPO],["Estilo",a.ESTILO],
                 ["Estilo cliente",a.ESTILO_CLIENTE||"—"],["Color",a.COLOR||"—"],
@@ -1037,10 +1039,13 @@ async function abrir(a){
     campos.push(["Repetición",Number(a.REPETICION)>1?a.REPETICION+".º registro igual":"Primero"]);
     campos.push(["Recorte",a.RECORTE||"—"]);
   }
+  if(esArtes && a.RESULTADO) campos.push(["Resultado",a.RESULTADO]);
   if(a.REGISTRADO_POR) campos.push(["Subido por (usuario)",a.REGISTRADO_POR]);
   if(a.NOTA) campos.push(["Nota",a.NOTA]);
   $("ovMeta").innerHTML=campos.map(c=>
-    '<div class="m"><div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div></div>').join("");
+    '<div class="m"><div class="k">'+esc(c[0])+'</div><div class="v">'+esc(c[1])+'</div></div>').join("")+
+    /* Auditoría de Artes: su reporte con el formato de la hoja FO-256 (Compartir PDF e Imprimir) */
+    (esArtes ? '<div class="m"><div class="k">Reporte</div><div class="v"><a href="https://iaanalistalives-ux.github.io/lives-auditoria-artes/ver.html?id='+encodeURIComponent(a.ID)+'" target="_blank" rel="noopener" style="color:#0F7A5A;font-weight:700">Ver reporte FO-256 '+esc(a.ID)+'</a></div></div>' : "");
   // las fotos del documento se numeran como páginas; las de prenda aparte
   const nHojas=fs.filter(x=>x.TIPO_FOTO==="HOJA").length;
   let cH=0, cE=0;
