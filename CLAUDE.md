@@ -6,7 +6,7 @@ Las reglas generales de trabajo están en el repo privado `lives-instrucciones` 
 `index.html` es una **consulta de solo lectura**: "Hojas escaneadas y prendas observadas". Junta las capturas de `lives-auditorias-taller`, las fotos de `lives-auditoria-final` y (desde el 28/10/2026) las de `lives-auditoria-artes`.
 - Filtros:
   - Búsqueda libre.
-  - Cliente, tipo, taller, proceso y auditora.
+  - Cliente, tipo, taller, proceso, color y auditora. El color (desde el 10/11/2026) sirve para escaneos y fotos, antiguos y nuevos; junta los colores sin importar mayúsculas ni espacios sobrantes.
   - Rango de fechas. Si no se elige fecha, la base trae lo más reciente.
 - Indicadores: registros, fotos, registros con fotos de prendas y talleres.
 - Tarjetas con la regla 500 y lo más reciente arriba.

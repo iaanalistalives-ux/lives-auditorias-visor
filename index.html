@@ -740,6 +740,7 @@ html.embebido body{padding-top:0!important;margin-top:0!important}
     <div class="f"><label>Tipo</label><select id="fTipo"></select></div>
     <div class="f"><label>Taller</label><select id="fTaller"></select></div>
     <div class="f"><label>Proceso</label><select id="fProceso"></select></div>
+    <div class="f"><label>Color</label><select id="fColor"></select></div>
     <div class="f"><label>Auditora</label><select id="fAuditora"></select></div>
     <div class="f"><label>Desde</label><input type="date" id="fDesde"></div>
     <div class="f"><label>Hasta</label><input type="date" id="fHasta"></div>
@@ -918,12 +919,17 @@ function llenarFiltros(){
       unicos(campo).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
     if(prev) sel.value=prev;
   });
+  /* Color: se junta sin importar mayúsculas ni espacios sobrantes (escaneos y fotos, antiguos y nuevos). */
+  const sc=$("fColor"), pc=sc.value;
+  const cols=[...new Set(AUDS.map(a=>String(a.COLOR||"").trim().replace(/\s+/g," ").toUpperCase()).filter(Boolean))].sort();
+  sc.innerHTML='<option value="">Todos los colores</option>'+cols.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
+  if(pc) sc.value=pc;
 }
 
 function filtrar(){
   const q=$("fq").value.trim().toUpperCase();
   const cl=$("fCliente").value, ti=$("fTipo").value, ta=$("fTaller").value, au=$("fAuditora").value;
-  const pr=$("fProceso").value;
+  const pr=$("fProceso").value, co=$("fColor").value;
   const de=$("fDesde").value, ha=$("fHasta").value;
   return AUDS.filter(a=>{
     if(cl&&a.CLIENTE!==cl) return false;
@@ -931,6 +937,7 @@ function filtrar(){
     if(ta&&a.TALLER!==ta) return false;
     if(au&&a.AUDITORA!==au) return false;
     if(pr&&a.PROCESO_TALLER!==pr) return false;
+    if(co&&String(a.COLOR||"").trim().replace(/\s+/g," ").toUpperCase()!==co) return false;
     const f=String(a.FECHA||"").slice(0,10);
     if(de&&f<de) return false;
     if(ha&&f>ha) return false;
@@ -954,7 +961,7 @@ function filtrar(){
    Los KPI y el Excel siguen usando la lista completa (filtrar()). */
 const TOPE=500, TOPE_SEG=3000;
 function hayFiltro(){
-  return ["fq","fCliente","fTipo","fTaller","fProceso","fAuditora","fDesde","fHasta"].some(id=>String($(id).value||"").trim()!=="");
+  return ["fq","fCliente","fTipo","fTaller","fProceso","fColor","fAuditora","fDesde","fHasta"].some(id=>String($(id).value||"").trim()!=="");
 }
 function aDibujar(list){
   return (!hayFiltro() || list.length>TOPE_SEG) ? list.slice(0,TOPE) : list;
@@ -1144,7 +1151,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape") cerrar();
 });
 
-["fq","fCliente","fTipo","fTaller","fProceso","fAuditora"].forEach(id=>{
+["fq","fCliente","fTipo","fTaller","fProceso","fColor","fAuditora"].forEach(id=>{
   $(id).addEventListener("input",render);
   $(id).addEventListener("change",render);
 });
@@ -1152,7 +1159,7 @@ document.addEventListener("keydown",e=>{
 ["fDesde","fHasta"].forEach(id=>$(id).addEventListener("change",cargar));
 $("btnLimpiar").onclick=()=>{
   const habiaFechas=$("fDesde").value||$("fHasta").value;
-  ["fq","fCliente","fTipo","fTaller","fProceso","fAuditora","fDesde","fHasta"].forEach(id=>{$(id).value="";});
+  ["fq","fCliente","fTipo","fTaller","fProceso","fColor","fAuditora","fDesde","fHasta"].forEach(id=>{$(id).value="";});
   if(habiaFechas) cargar(); else render();
 };
 $("btnRecargar").onclick=cargar;
