@@ -735,7 +735,7 @@ html.embebido body{padding-top:0!important;margin-top:0!important}
   <div class="err" id="err"></div>
 
   <div class="bar" id="bar">
-    <div class="f"><label>Buscar</label><input type="text" id="fq" placeholder="OP, grupo, estilo, color, tela…"></div>
+    <div class="f"><label>Buscar</label><input type="text" id="fq" placeholder="Buscar estilo…"></div>
     <div class="f"><label>Cliente</label><select id="fCliente"></select></div>
     <div class="f"><label>Tipo</label><select id="fTipo"></select></div>
     <div class="f"><label>Taller</label><select id="fTaller"></select></div>
@@ -942,8 +942,7 @@ function filtrar(){
     if(de&&f<de) return false;
     if(ha&&f>ha) return false;
     if(q){
-      const blob=[a.OP,a.GRUPO,a.ESTILO,a.ESTILO_CLIENTE,a.COLOR,a.COD_TELA,a.DESC_TELA,a.NOTA,a.CLIENTE,
-                  a.TALLER,a.AUDITORA,a.PROCESO_TALLER]
+      const blob=[a.ESTILO,a.ESTILO_CLIENTE]
                  .join(" ").toUpperCase();
       if(blob.indexOf(q)<0) return false;
     }
